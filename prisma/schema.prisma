@@ -1,0 +1,88 @@
+// Prisma Schema untuk Sistem Informasi Inventaris & Peminjaman Alat SMKN 10 Makassar
+// Mengacu pada Permendikbudristek No. 22 Tahun 2023 (Klasifikasi Sarana & Prasarana)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  GURU
+}
+
+enum JenisAset {
+  SARANA
+  PRASARANA
+}
+
+enum KondisiAset {
+  BAIK
+  RUSAK
+}
+
+enum StatusPinjam {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum StatusKembali {
+  BELUM
+  DIKEMBALIKAN
+}
+
+model Users {
+  id           String       @id @default(cuid())
+  username     String       @unique
+  password     String
+  role         Role         @default(GURU)
+  nama_lengkap String
+  peminjaman   Peminjaman[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@map("users")
+}
+
+model Inventaris {
+  id          String       @id @default(cuid())
+  jenis_aset  JenisAset
+  kategori    String // Sarana: Bahan Pembelajaran, Alat Pembelajaran, Perlengkapan. Prasarana: Ruang Kelas, Ruang Praktik/Bengkel, Laboratorium, Ruang Administrasi, Lahan, Bangunan
+  nama_item   String
+  gambar_url  String?
+  lokasi      String
+  jumlah      Int          @default(1)
+  kondisi     KondisiAset  @default(BAIK)
+  barcode_id  String       @unique
+  peminjaman  Peminjaman[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("inventaris")
+}
+
+model Peminjaman {
+  id                    String        @id @default(cuid())
+  user_id               String
+  user                  Users         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  inventaris_id         String
+  inventaris            Inventaris    @relation(fields: [inventaris_id], references: [id], onDelete: Cascade)
+  jumlah_pinjam         Int           @default(1)
+  tgl_pinjam            DateTime
+  tgl_kembali           DateTime
+  keperluan             String        @db.Text
+  status_pinjam         StatusPinjam  @default(PENDING)
+  status_kembali        StatusKembali @default(BELUM)
+  ceklis_kondisi_kembali String?      @db.Text
+  catatan               String?       @db.Text
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@map("peminjaman")
+}
